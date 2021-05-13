@@ -1,0 +1,27 @@
+const users = [];
+
+export const addUser = ({ name, room, id }) => {
+  const isExists = users.find((res) => res.name === name && res.room === room);
+  if (isExists) {
+    return { error: "user is already taken" };
+  }
+  users.push({ name, room, id });
+  const user = { name, room, id };
+  return { user };
+};
+
+export const removeUser = (id) => {
+  if (id) {
+    const removeUser = users.find((res) => res.id === id);
+    users = users.filter((res) => res.id !== id);
+    if (removeUser) {
+      return removeUser;
+    }
+    return null;
+  }
+  return null;
+};
+
+export const getUserInRoom = (room) => {
+  return users.filter((user) => user.room == room);
+};
