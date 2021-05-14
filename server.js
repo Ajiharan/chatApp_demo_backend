@@ -4,7 +4,7 @@ import morgan from "morgan";
 import * as socketio from "socket.io";
 import dotenv from "dotenv";
 import http from "http";
-import { addUser, removeUser, getUserInRoom } from "./users.js";
+import { addUser, removeUser, getUserInRoom, getUser } from "./users.js";
 const PORT = process.env.PORT || 5000;
 const app = express();
 app.use(cors());
@@ -17,6 +17,7 @@ const io = new socketio.Server(server, {
   cors: {
     origin: "http://localhost:3000",
     credentials: true,
+    allowedHeaders: true,
   },
 });
 
@@ -26,10 +27,10 @@ app.get("/", (req, res) => {
 io.on("connection", (socket) => {
   console.log("user connected successfully");
   socket.on("join", ({ name, room }, callback) => {
-    console.log("Name", name);
     const { error, user } = addUser({ id: socket.id, name, room });
     // console.log("User",user)
     if (error) {
+      console.log("error", error);
       return callback(error);
     }
     socket.emit("message", {
@@ -47,6 +48,27 @@ io.on("connection", (socket) => {
     });
 
     callback();
+  });
+
+  socket.on("sendMessage", (message, callback) => {
+    const user = getUser(socket.id);
+    io.to(user.room).emit("message", { user: user.name, text: message });
+    io.to(user.room).emit("roomData", {
+      room: user.room,
+      users: getUserInRoom(user.room),
+    });
+    callback();
+  });
+
+  socket.on("removeUser", () => {
+    const user = removeUser(socket.id);
+    if (user) {
+      io.to(user.room).emit("message", {
+        user: "admin",
+        text: `${user.name} has left`,
+      });
+      console.log("user disconnected");
+    }
   });
 });
 
